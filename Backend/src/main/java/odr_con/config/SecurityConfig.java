@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -18,9 +19,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Configuração base de segurança. Ponto de partida: API stateless,
- * health check público e todo o resto exigindo autenticação.
- * Ajuste as rotas públicas (ex.: /api/auth/**) conforme as features forem sendo criadas.
+ * Configuração base de segurança: API stateless, health check e cadastro públicos.
+ * Demais rotas exigem autenticação. Amplie /api/auth/** quando o login/JWT for criado.
  */
 @Configuration
 public class SecurityConfig {
@@ -33,9 +33,13 @@ public class SecurityConfig {
 		http
 			.csrf(AbstractHttpConfigurer::disable)
 			.cors(Customizer.withDefaults())
+			.httpBasic(AbstractHttpConfigurer::disable)
+			.formLogin(AbstractHttpConfigurer::disable)
 			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/usuarios", "/api/usuarios/").permitAll()
+				.requestMatchers("/api/auth/**").permitAll()
 				.anyRequest().authenticated());
 		return http.build();
 	}
