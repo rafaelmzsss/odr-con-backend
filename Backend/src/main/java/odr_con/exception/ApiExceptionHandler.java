@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
+import odr_con.exception.colaboradores.EmailOuChaveJaCadastradosException;
 import odr_con.exception.usuario.EmailJaCadastradoException;
 
 @RestControllerAdvice
@@ -24,6 +25,14 @@ public class ApiExceptionHandler {
 						"Conflict",
 						ex.getMessage(),
 						request.getRequestURI()));
+	}
+
+	@ExceptionHandler(EmailOuChaveJaCadastradosException.class)
+	public ResponseEntity<ErroResponse> handleColaboradorJaCadastrado(
+			EmailOuChaveJaCadastradosException ex,
+			HttpServletRequest request) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(
+				ErroResponse.of(HttpStatus.CONFLICT.value(), "Conflict", ex.getMessage(), request.getRequestURI()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
