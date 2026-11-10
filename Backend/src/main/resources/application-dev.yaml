@@ -5,3 +5,7 @@ spring:
     password: ${DB_PASSWORD:odr}
   jpa:
     show-sql: true
+
+app:
+  errors:
+    include-details: true

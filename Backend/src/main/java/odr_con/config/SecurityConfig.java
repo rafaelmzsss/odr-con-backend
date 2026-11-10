@@ -40,6 +40,7 @@ public class SecurityConfig {
 				.requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/usuarios", "/api/usuarios/").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/colaboradores", "/api/colaboradores/").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/reclamacoes", "/api/reclamacoes/").permitAll()
 				.requestMatchers("/api/auth/**").permitAll()
 				.anyRequest().authenticated());
 		return http.build();

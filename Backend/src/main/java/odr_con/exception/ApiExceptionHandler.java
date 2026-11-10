@@ -2,6 +2,9 @@ package odr_con.exception;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,10 +13,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
 import odr_con.exception.colaboradores.EmailOuChaveJaCadastradosException;
+import odr_con.exception.reclamacoes.ReclamacaoNaoEncontradaException;
+import odr_con.exception.reclamacoes.UsuarioDaReclamacaoNaoEncontradoException;
 import odr_con.exception.usuario.EmailJaCadastradoException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+	private static final Logger logger = LoggerFactory.getLogger(ApiExceptionHandler.class);
+	@Value("${app.errors.include-details:false}")
+	private boolean includeErrorDetails;
 
 	@ExceptionHandler(EmailJaCadastradoException.class)
 	public ResponseEntity<ErroResponse> handleEmailJaCadastrado(
@@ -33,6 +41,14 @@ public class ApiExceptionHandler {
 			HttpServletRequest request) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(
 				ErroResponse.of(HttpStatus.CONFLICT.value(), "Conflict", ex.getMessage(), request.getRequestURI()));
+	}
+
+	@ExceptionHandler({ReclamacaoNaoEncontradaException.class, UsuarioDaReclamacaoNaoEncontradoException.class})
+	public ResponseEntity<ErroResponse> handleRecursoReclamacaoNaoEncontrado(
+			RuntimeException ex,
+			HttpServletRequest request) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+				ErroResponse.of(HttpStatus.NOT_FOUND.value(), "Not Found", ex.getMessage(), request.getRequestURI()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
@@ -56,11 +72,15 @@ public class ApiExceptionHandler {
 	public ResponseEntity<ErroResponse> handleGenerico(
 			Exception ex,
 			HttpServletRequest request) {
+		logger.error("Erro ao processar requisição para {}", request.getRequestURI(), ex);
+		String mensagem = includeErrorDetails
+				? ex.getClass().getSimpleName() + ": " + ex.getMessage()
+				: "Erro interno inesperado";
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
 				ErroResponse.of(
 						HttpStatus.INTERNAL_SERVER_ERROR.value(),
 						"Internal Server Error",
-						"Erro interno inesperado",
+						mensagem,
 						request.getRequestURI()));
 	}
 }
