@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.servlet.http.HttpServletRequest;
 import odr_con.exception.colaboradores.EmailOuChaveJaCadastradosException;
 import odr_con.exception.reclamacoes.ReclamacaoNaoEncontradaException;
+import odr_con.exception.reclamacoes.TokenAcessoNaoEncontradoException;
 import odr_con.exception.reclamacoes.UsuarioDaReclamacaoNaoEncontradoException;
 import odr_con.exception.usuario.EmailJaCadastradoException;
 
@@ -43,7 +44,8 @@ public class ApiExceptionHandler {
 				ErroResponse.of(HttpStatus.CONFLICT.value(), "Conflict", ex.getMessage(), request.getRequestURI()));
 	}
 
-	@ExceptionHandler({ReclamacaoNaoEncontradaException.class, UsuarioDaReclamacaoNaoEncontradoException.class})
+	@ExceptionHandler({ReclamacaoNaoEncontradaException.class, UsuarioDaReclamacaoNaoEncontradoException.class,
+			TokenAcessoNaoEncontradoException.class})
 	public ResponseEntity<ErroResponse> handleRecursoReclamacaoNaoEncontrado(
 			RuntimeException ex,
 			HttpServletRequest request) {

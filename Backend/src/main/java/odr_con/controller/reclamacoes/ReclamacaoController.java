@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import odr_con.dto.reclamacoes.AtualizarReclamacaoRequest;
 import odr_con.dto.reclamacoes.CadastroReclamacaoRequest;
+import odr_con.dto.reclamacoes.CadastroReclamacaoResponse;
 import odr_con.dto.reclamacoes.ReclamacaoResponse;
 import odr_con.service.reclamacoes.ReclamacaoService;
 
@@ -29,8 +30,13 @@ public class ReclamacaoController {
 	}
 
 	@PostMapping
-	public ResponseEntity<ReclamacaoResponse> cadastrar(@Valid @RequestBody CadastroReclamacaoRequest request) {
+	public ResponseEntity<CadastroReclamacaoResponse> cadastrar(@Valid @RequestBody CadastroReclamacaoRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(reclamacaoService.cadastrar(request));
+	}
+
+	@GetMapping("/acompanhar/{token}")
+	public ReclamacaoResponse buscarPorToken(@PathVariable String token) {
+		return reclamacaoService.buscarPorToken(token);
 	}
 
 	@GetMapping
