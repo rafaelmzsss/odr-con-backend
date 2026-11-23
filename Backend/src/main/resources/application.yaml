@@ -13,16 +13,19 @@ spring:
     enabled: true
     locations: classpath:db/migration
   ai:
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    openai:
+      base-url: ${OLLAMA_CLOUD_BASE_URL:https://ollama.com/v1}
+      api-key: ${OLLAMA_API_KEY:}
       chat:
         options:
-          model: ${OLLAMA_MODEL:llama3.2:3b}
-          temperature: ${OLLAMA_TEMPERATURE:0.4}
+          model: ${AI_MODEL:gpt-oss:20b}
+          temperature: ${AI_TEMPERATURE:0.4}
+      timeout: ${AI_READ_TIMEOUT:60s}
+      max-retries: ${AI_MAX_RETRIES:1}
   http:
     clients:
       connect-timeout: ${AI_CONNECT_TIMEOUT:5s}
-      read-timeout: ${AI_READ_TIMEOUT:120s}
+      read-timeout: ${AI_READ_TIMEOUT:60s}
 
 server:
   # Plataformas de hospedagem (Render, Railway, Heroku...) injetam PORT.
