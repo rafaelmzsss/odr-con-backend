@@ -14,11 +14,12 @@ spring:
     locations: classpath:db/migration
   ai:
     openai:
-      base-url: ${OLLAMA_CLOUD_BASE_URL:https://ollama.com/v1}
-      api-key: ${OLLAMA_API_KEY:}
+      # API do Gemini com compatibilidade OpenAI.
+      base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
+      api-key: ${GEMINI_API_KEY:}
       chat:
         options:
-          model: ${AI_MODEL:gpt-oss:20b}
+          model: ${AI_MODEL:gemini-3.1-flash-lite}
           temperature: ${AI_TEMPERATURE:0.4}
       timeout: ${AI_READ_TIMEOUT:60s}
       max-retries: ${AI_MAX_RETRIES:1}
