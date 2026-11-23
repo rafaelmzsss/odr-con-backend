@@ -14,16 +14,19 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import odr_con.config.SecurityConfig;
+import odr_con.config.JwtConfig;
 import odr_con.dto.usuario.CadastroUsuarioRequest;
 import odr_con.dto.usuario.UsuarioResponse;
 import odr_con.exception.usuario.EmailJaCadastradoException;
 import odr_con.service.usuario.UsuarioService;
 
 @WebMvcTest(controllers = UsuarioController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtConfig.class})
+@ActiveProfiles("test")
 class UsuarioControllerTest {
 
 	@Autowired

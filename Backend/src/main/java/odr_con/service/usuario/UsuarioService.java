@@ -23,19 +23,25 @@ public class UsuarioService {
 
 	@Transactional
 	public UsuarioResponse cadastrar(CadastroUsuarioRequest request) {
-		String email = request.email().trim().toLowerCase();
+		Usuario salvo = cadastrarConta(request.nome(), request.email(), request.senha(), "pessoa");
+		return UsuarioResponse.from(salvo);
+	}
+
+	@Transactional
+	public Usuario cadastrarConta(String nome, String emailInformado, String senha, String perfil) {
+		String email = emailInformado.trim().toLowerCase();
 
 		if (usuarioRepository.existsByEmail(email)) {
 			throw new EmailJaCadastradoException(email);
 		}
 
 		Usuario usuario = Usuario.builder()
-				.nome(request.nome().trim())
+				.nome(nome.trim())
 				.email(email)
-				.senha(passwordEncoder.encode(request.senha()))
+				.senha(passwordEncoder.encode(senha))
+				.perfil(perfil)
 				.build();
 
-		Usuario salvo = usuarioRepository.save(usuario);
-		return UsuarioResponse.from(salvo);
+		return usuarioRepository.save(usuario);
 	}
 }

@@ -1,61 +1,89 @@
-# ODR — Backend
+# ODR-CON — Backend
 
-API Java 21 com Spring Boot, PostgreSQL, Flyway e Spring AI. A geração de respostas usa a integração nativa do Spring AI com Gemini API. O endpoint de conversa é `POST /api/chat`.
+API Java 21, Spring Boot 4.0.8, Spring AI 2.0.2, PostgreSQL e Flyway. O backend usa a integração Google GenAI do Spring AI para a Priscila.
 
-## Configurar a IA
+## Contratos disponíveis
 
-1. Crie uma chave no [Google AI Studio](https://aistudio.google.com/api-keys).
-2. Configure a chave como variável de ambiente `GEMINI_API_KEY` no ambiente em que o backend roda. Não coloque a chave no código, no frontend ou no Git.
-3. O modelo padrão é `gemini-3.1-flash-lite`, configurado pela integração Google GenAI do Spring AI.
+- `POST /api/auth/register`: cria conta `pessoa` ou `empresa`, salva senha com BCrypt e devolve `accessToken` e `user`.
+- `POST /api/auth/login`: valida e-mail, senha e perfil no banco e devolve um JWT Bearer.
+- `POST /api/auth/password/forgot`: devolve sempre uma resposta genérica `not_configured`, sem consultar/revelar se o e-mail existe. O envio de e-mail e a redefinição com token ainda precisam ser implementados quando houver um provedor SMTP definido.
+- `POST /api/priscila/messages`: requer JWT de pessoa; salva a conversa no banco e devolve `collecting` ou `ready_for_review` com o resumo.
+- `POST /api/reports`: requer JWT de pessoa; valida que o resumo confirmado corresponde à conversa, salva em `reclamacoes` e devolve protocolo `ODR-ANO-NÚMERO`. Repetir o mesmo `conversationId` devolve o mesmo protocolo.
+- `POST /api/usuarios` e `POST /api/chat` continuam como rotas legadas. Cadastro legado cria perfil pessoa. Rotas administrativas antigas de reclamações e colaboradores exigem `ROLE_ADMIN`; ainda não há fluxo de provisionamento de conta admin.
 
-O plano gratuito tem limites de uso e a disponibilidade da cota/modelo pode variar por projeto. Ao atingir o limite, o backend responde com fallback. A documentação atual informa que conteúdo do plano gratuito pode ser usado para melhorar produtos do Google. Este projeto mascara alguns padrões de CPF, e-mail e números financeiros, mas não remove todos os dados pessoais. Não use o plano gratuito com relatos sensíveis ou dados reais sem avaliar essa condição.
+Os perfis `pessoa` e `empresa` são gravados pelo backend. O token assinado pelo servidor define a identidade e a autoridade; o papel informado no navegador não concede privilégios por si só. O cadastro empresa cria uma conta de perfil, mas o cadastro de organizações/equipe e o painel de colaboradores ainda não estão implementados.
 
 ## Executar localmente (Windows)
 
-Pré-requisitos: Java 21, Docker Desktop com Compose e uma chave Gemini configurada em `GEMINI_API_KEY` no PowerShell:
+Pré-requisitos: Java 21, Docker Desktop e uma chave Gemini configurada no PowerShell. O Compose sobe PostgreSQL e API.
 
 ```powershell
 $env:GEMINI_API_KEY = "sua-chave"
 docker compose up --build
 ```
 
-O Compose inicia PostgreSQL e API. A API fica em `http://localhost:8080`; saúde: `GET http://localhost:8080/actuator/health`.
+API: `http://localhost:8080`. Health check: `GET /actuator/health`. Em desenvolvimento, CORS aceita `http://localhost:5173`. Para testar a conversa, use o JWT retornado por `/api/auth/register` ou `/api/auth/login` no cabeçalho `Authorization: Bearer ...` ao chamar Priscila e `/api/reports`.
 
-### Testar a conversa
-
-Em outro PowerShell:
-
-```powershell
-$body = @{ sessionId = "teste-001"; message = "Estou tendo dificuldade para resolver um desacordo no trabalho." } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/chat -ContentType "application/json" -Body $body
-```
-
-A resposta contém `sessionId`, `reply`, `severidade`, `statusCaso`, `dadosMascarados` e `fallbackAtivado`. Se `fallbackAtivado` for `true`, confira a variável `GEMINI_API_KEY`, o modelo e a cota do projeto no Google AI Studio.
-
-## Hospedar no Render
-
-O Web Service Docker usa `Backend/` como diretório raiz e o `Dockerfile` existente. Configure no Environment do serviço:
+## Variáveis do Web Service no Render
 
 | Variável | Valor |
 |---|---|
 | `SPRING_PROFILES_ACTIVE` | `prod` |
-| `DB_URL` | `jdbc:postgresql://HOST:5432/NOME_DO_BANCO` |
+| `DB_URL` | URL JDBC do PostgreSQL do Render, começando por `jdbc:postgresql://` |
 | `DB_USER` | usuário do PostgreSQL |
 | `DB_PASSWORD` | senha do PostgreSQL |
-| `GEMINI_API_KEY` | chave criada no Google AI Studio |
-| `AI_MODEL` | `gemini-3.1-flash-lite` |
-| `CORS_ALLOWED_ORIGINS` | origem exata do frontend, se já hospedado |
+| `GEMINI_API_KEY` | chave do Google AI Studio; segredo, somente no backend |
+| `JWT_SECRET` | segredo aleatório com pelo menos 32 bytes; não use o valor de exemplo |
+| `CORS_ALLOWED_ORIGINS` | URL HTTPS exata do Static Site, sem barra final |
+| `AI_MODEL` | opcional; padrão `gemini-3.1-flash-lite` |
+| `JWT_TTL_SECONDS` | opcional; padrão `3600` |
 
-Salve as variáveis e faça o deploy. O Flyway aplica as migrações na inicialização. Health check: `/actuator/health`.
+Não use `*` em CORS e não inclua o domínio do frontend em `VITE_*` junto com nenhuma chave secreta. O frontend deve usar `VITE_API_BASE_URL=https://SEU-BACKEND.onrender.com` (sem `/api`); configure essa variável no serviço Static Site. Para o backend local, o valor padrão de CORS já permite `http://localhost:5173`.
 
-## Configuração e comportamento
+O Flyway aplica a migração V3 ao iniciar. Depois de configurar as variáveis, faça o deploy do Web Service. Se o Render estiver ligado à branch `develop`, integre nela as alterações antes de esperar o deploy.
 
-- `GEMINI_API_KEY` é segredo: configure-a no Render ou no ambiente local. Nunca a inclua no Git nem no frontend.
-- `AI_MODEL` escolhe o modelo Gemini; `AI_TEMPERATURE` ajusta a geração e `AI_MAX_RETRIES` controla tentativas.
-- A memória da conversa fica no processo, não no PostgreSQL. Ela se perde quando o serviço reinicia e não é compartilhada entre múltiplas instâncias.
-- A classificação de severidade é uma heurística de apoio, não uma decisão final. O chat não cria nem encaminha reclamações.
-- Se o provedor estiver indisponível, a chave falhar ou a cota gratuita acabar, a API retorna uma resposta de fallback.
+## Testes de API
 
-## Banco de dados
+Cadastro:
 
-O schema é gerenciado pelo Flyway em `src/main/resources/db/migration`. Para alterar o banco, crie uma nova migração versionada; não edite uma migração já aplicada. O Hibernate valida as entidades com `ddl-auto: validate`.
+```json
+POST /api/auth/register
+{"email":"pessoa@exemplo.com","password":"senha-forte","role":"pessoa","fullName":"Nome Sobrenome"}
+```
+
+Login:
+
+```json
+POST /api/auth/login
+{"email":"pessoa@exemplo.com","password":"senha-forte","role":"pessoa"}
+```
+
+Mensagem Priscila (enviar o JWT no cabeçalho):
+
+```json
+POST /api/priscila/messages
+{"conversationId":null,"message":"Comprei um produto e ele apresentou defeito."}
+```
+
+Registro do resumo confirmado (usar o `conversationId` e o `summary` devolvidos em `ready_for_review`):
+
+```json
+POST /api/reports
+{"conversationId":"UUID_DA_CONVERSA","summary":{"company":"Loja Horizonte","category":"Produto","description":"Produto apresentou defeito.","requestedSolution":"Substituição do produto"}}
+```
+
+O endpoint de recuperação responde `202` com `status: not_configured`. Para ativar recuperação real, ainda é necessário configurar provedor de e-mail, criar tokens de uso único com expiração e persistir somente o hash do token.
+
+## Segurança e privacidade
+
+- Senhas são salvas com BCrypt; a API nunca as devolve.
+- JWT é assinado com HS256 e expira em `JWT_TTL_SECONDS`; rotas protegidas exigem `Authorization: Bearer <token>`.
+- Preflight CORS aceita `Authorization`, `Content-Type` e `Accept`; cookies não são usados.
+- Relatos e conversas são persistidos no PostgreSQL. O backend mascara CPF, e-mail e números longos antes de enviar o texto da Priscila ao Gemini, mas isso não elimina todos os dados pessoais.
+- A cota gratuita Gemini tem limites e os termos do plano gratuito informam que conteúdo pode ser usado para melhorar produtos. Não envie relatos reais/sensíveis sem avaliar essa condição.
+
+## Migrations e compatibilidade
+
+V1 e V2 são migrations existentes e não devem ser alteradas. A V3 adiciona perfil, conversas, resumo e protocolo às tabelas existentes. O Hibernate valida o schema com `ddl-auto: validate`.
+
+O código-fonte do frontend não está neste workspace, então a integração do navegador e o domínio real do Static Site ainda precisam ser conferidos no repositório/frontend publicado.

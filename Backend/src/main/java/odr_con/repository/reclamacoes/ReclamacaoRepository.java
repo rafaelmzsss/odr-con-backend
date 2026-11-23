@@ -10,4 +10,6 @@ public interface ReclamacaoRepository extends JpaRepository<Reclamacao, Long> {
 	boolean existsByTokenAcesso(String tokenAcesso);
 
 	Optional<Reclamacao> findByTokenAcesso(String tokenAcesso);
+
+	Optional<Reclamacao> findByConversationId(String conversationId);
 }

@@ -1,27 +1,27 @@
 package odr_con.config;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-/**
- * Configuração base de segurança: API stateless, health check e cadastro públicos.
- * Demais rotas exigem autenticação. Amplie /api/auth/** quando o login/JWT for criado.
- */
 @Configuration
 public class SecurityConfig {
 
@@ -29,7 +29,9 @@ public class SecurityConfig {
 	private String allowedOrigins;
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(
+			HttpSecurity http,
+			Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter) throws Exception {
 		http
 			.csrf(AbstractHttpConfigurer::disable)
 			.cors(Customizer.withDefaults())
@@ -37,14 +39,19 @@ public class SecurityConfig {
 			.formLogin(AbstractHttpConfigurer::disable)
 			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login",
+						"/api/auth/password/forgot").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/usuarios", "/api/usuarios/").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/colaboradores", "/api/colaboradores/").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/reclamacoes", "/api/reclamacoes/").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/chat", "/api/chat/").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/reclamacoes/acompanhar/**").permitAll()
-				.requestMatchers("/api/auth/**").permitAll()
-				.anyRequest().authenticated());
+				.requestMatchers(HttpMethod.POST, "/api/priscila/messages", "/api/reports",
+						"/api/chat", "/api/chat/", "/api/reclamacoes", "/api/reclamacoes/")
+					.hasRole("PESSOA")
+				.requestMatchers("/api/reclamacoes/**", "/api/colaboradores/**").hasRole("ADMIN")
+				.anyRequest().authenticated())
+			.oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
+				jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 		return http.build();
 	}
 
@@ -55,16 +62,21 @@ public class SecurityConfig {
 
 	@Bean
 	CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = Arrays.stream(allowedOrigins.split(","))
-			.map(String::trim)
-			.filter(o -> !o.isEmpty())
-			.toList();
+				.map(String::trim)
+				.filter(origin -> !origin.isEmpty())
+				.toList();
+		if (origins.isEmpty() || origins.contains("*")) {
+			throw new IllegalStateException("Configure origens CORS exatas em CORS_ALLOWED_ORIGINS");
+		}
+		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowedOrigins(origins);
-		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		config.setAllowedHeaders(List.of("*"));
+		config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+		config.setAllowCredentials(false);
+		config.setMaxAge(Duration.ofHours(1));
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", config);
+		source.registerCorsConfiguration("/api/**", config);
 		return source;
 	}
 }
