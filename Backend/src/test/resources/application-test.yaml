@@ -5,3 +5,12 @@ spring:
     password: ""
   jpa:
     show-sql: false
+  ai:
+    google:
+      genai:
+        api-key: test-gemini-key-not-for-real-requests
+
+app:
+  jwt:
+    secret: test-secret-for-jwt-tests-at-least-32-bytes-long
+    ttl-seconds: 3600

@@ -37,6 +37,10 @@ public class Usuario {
 	@Column(nullable = false)
 	private String senha;
 
+	@Column(name = "perfil", nullable = false, length = 20)
+	@Builder.Default
+	private String perfil = "pessoa";
+
 	@Column(name = "criado_em", nullable = false)
 	private LocalDateTime criadoEm;
 

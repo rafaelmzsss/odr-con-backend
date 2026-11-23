@@ -46,6 +46,18 @@ public class Reclamacao {
 	@Column(name = "token_acesso", unique = true, length = 255)
 	private String tokenAcesso;
 
+	@Column(unique = true, length = 40)
+	private String protocolo;
+
+	@Column(name = "conversation_id", unique = true, length = 36)
+	private String conversationId;
+
+	@Column(length = 255)
+	private String empresa;
+
+	@Column(name = "solucao_solicitada", columnDefinition = "TEXT")
+	private String solucaoSolicitada;
+
 	@PrePersist
 	void prePersist() {
 		if (status == null || status.isBlank()) {

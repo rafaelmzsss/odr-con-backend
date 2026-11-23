@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -68,6 +69,16 @@ public class ApiExceptionHandler {
 						"Dados inválidos",
 						request.getRequestURI(),
 						campos));
+	}
+
+	@ExceptionHandler(ResponseStatusException.class)
+	public ResponseEntity<ErroResponse> handleStatus(
+			ResponseStatusException ex,
+			HttpServletRequest request) {
+		HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+		String mensagem = ex.getReason() == null ? status.getReasonPhrase() : ex.getReason();
+		return ResponseEntity.status(status).body(
+				ErroResponse.of(status.value(), status.getReasonPhrase(), mensagem, request.getRequestURI()));
 	}
 
 	@ExceptionHandler(Exception.class)

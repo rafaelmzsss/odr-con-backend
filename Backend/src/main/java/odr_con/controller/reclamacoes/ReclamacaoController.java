@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,8 +32,15 @@ public class ReclamacaoController {
 	}
 
 	@PostMapping
-	public ResponseEntity<CadastroReclamacaoResponse> cadastrar(@Valid @RequestBody CadastroReclamacaoRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(reclamacaoService.cadastrar(request));
+	public ResponseEntity<CadastroReclamacaoResponse> cadastrar(
+			@AuthenticationPrincipal Jwt jwt,
+			@Valid @RequestBody CadastroReclamacaoRequest request) {
+		Object uid = jwt.getClaim("uid");
+		if (!(uid instanceof Number id)) {
+			throw new org.springframework.web.server.ResponseStatusException(
+					HttpStatus.UNAUTHORIZED, "Token sem identificador de usuário");
+		}
+		return ResponseEntity.status(HttpStatus.CREATED).body(reclamacaoService.cadastrar(request, id.longValue()));
 	}
 
 	@GetMapping("/acompanhar/{token}")

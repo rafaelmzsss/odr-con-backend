@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import odr_con.dto.reclamacoes.AtualizarReclamacaoRequest;
 import odr_con.dto.reclamacoes.CadastroReclamacaoRequest;
@@ -30,11 +32,14 @@ public class ReclamacaoService {
 	}
 
 	@Transactional
-	public CadastroReclamacaoResponse cadastrar(CadastroReclamacaoRequest request) {
-		validarUsuario(request.usuarioId());
+	public CadastroReclamacaoResponse cadastrar(CadastroReclamacaoRequest request, Long usuarioAutenticadoId) {
+		validarUsuario(usuarioAutenticadoId);
+		if (request.usuarioId() != null && !request.usuarioId().equals(usuarioAutenticadoId)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "O usuário do token não corresponde ao relato");
+		}
 		String tokenAcesso = gerarTokenUnico();
 		Reclamacao reclamacao = Reclamacao.builder()
-				.usuarioId(request.usuarioId())
+				.usuarioId(usuarioAutenticadoId)
 				.tipoRegistro(request.tipoRegistro().trim())
 				.textoOriginal(request.textoOriginal())
 				.status("PENDENTE")

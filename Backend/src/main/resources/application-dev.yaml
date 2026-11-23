@@ -9,3 +9,6 @@ spring:
 app:
   errors:
     include-details: true
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-change-this-value-32bytes-minimum}
+    ttl-seconds: ${JWT_TTL_SECONDS:3600}
