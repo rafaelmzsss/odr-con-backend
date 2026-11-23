@@ -23,4 +23,5 @@ target/
 .vscode/
 *.iml
 .env
+Backend/.env.example
 .DS_Store
