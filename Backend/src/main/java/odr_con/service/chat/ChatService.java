@@ -4,6 +4,8 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ChatService {
+	private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
 	private static final String SYSTEM_PROMPT = """
 			Você é o assistente de acolhimento de uma plataforma de resolução online de conflitos.
 			Responda sempre em português do Brasil, com empatia, clareza e imparcialidade.
@@ -57,6 +60,8 @@ public class ChatService {
 			return new TriagemResponse(session, reply, severity,
 					"Em Triagem / Atendimento IA", piiDetected, false);
 		} catch (Exception ex) {
+			logger.warn("Falha ao chamar o modelo de IA; fallback ativado. Causa: {}",
+					ex.getClass().getSimpleName());
 			String severity = escalate ? "CRITICO" : inferirSeveridade(sanitized);
 			return new TriagemResponse(session,
 					"Recebi seu relato (protocolo " + session + "). O assistente está temporariamente indisponível; tente novamente mais tarde ou procure atendimento humano. Esta conversa não registra nem encaminha uma reclamação. Severidade sugerida: " + severity + ".",
