@@ -1,4 +1,4 @@
-# Sobe PostgreSQL + API localmente:  docker compose up --build
+# Sobe PostgreSQL + API localmente: docker compose up --build
 services:
   db:
     image: postgres:16-alpine
@@ -26,9 +26,9 @@ services:
       DB_URL: jdbc:postgresql://db:5432/odr
       DB_USER: odr
       DB_PASSWORD: odr
-      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
-      OLLAMA_CLOUD_BASE_URL: ${OLLAMA_CLOUD_BASE_URL:-https://ollama.com/v1}
-      AI_MODEL: ${AI_MODEL:-gpt-oss:20b}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/}
+      AI_MODEL: ${AI_MODEL:-gemini-3.1-flash-lite}
       AI_TEMPERATURE: ${AI_TEMPERATURE:-0.4}
       AI_CONNECT_TIMEOUT: ${AI_CONNECT_TIMEOUT:-5s}
       AI_READ_TIMEOUT: ${AI_READ_TIMEOUT:-60s}
