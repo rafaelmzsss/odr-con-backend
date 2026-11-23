@@ -24,3 +24,4 @@ target/
 *.iml
 .env
 .DS_Store
+Backend/.env.example
