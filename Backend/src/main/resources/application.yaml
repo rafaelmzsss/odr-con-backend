@@ -12,6 +12,17 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:llama3.2:3b}
+          temperature: ${OLLAMA_TEMPERATURE:0.4}
+  http:
+    clients:
+      connect-timeout: ${AI_CONNECT_TIMEOUT:5s}
+      read-timeout: ${AI_READ_TIMEOUT:120s}
 
 server:
   # Plataformas de hospedagem (Render, Railway, Heroku...) injetam PORT.
