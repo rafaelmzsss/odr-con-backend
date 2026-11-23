@@ -61,7 +61,7 @@ public class ChatService {
 					"Em Triagem / Atendimento IA", piiDetected, false);
 		} catch (Exception ex) {
 			logger.warn("Falha ao chamar o modelo de IA; fallback ativado. Causa: {}",
-				descreverCausaSegura(ex));
+				escreverCausaSegura(ex));
 			String severity = escalate ? "CRITICO" : inferirSeveridade(sanitized);
 			return new TriagemResponse(session,
 					"Recebi seu relato (protocolo " + session + "). O assistente está temporariamente indisponível; tente novamente mais tarde ou procure atendimento humano. Esta conversa não registra nem encaminha uma reclamação. Severidade sugerida: " + severity + ".",
