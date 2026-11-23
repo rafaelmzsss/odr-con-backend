@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -94,13 +95,30 @@ public class PriscilaService {
 			conversaRepository.save(conversa);
 			return new PriscilaMensagemResponse(conversa.getId(), reply, status, resumo);
 		} catch (Exception ex) {
-			logger.warn("Falha na conversa Priscila; causa: {}", ex.getClass().getSimpleName());
+			logger.warn("Falha na conversa Priscila; cadeia de causas: {}", cadeiaCausasSegura(ex));
 			conversa.setStatus(COLLECTING);
 			conversaRepository.save(conversa);
 			return new PriscilaMensagemResponse(conversa.getId(),
 					"A Priscila está temporariamente indisponível. Tente enviar sua mensagem novamente.",
 					COLLECTING, null);
 		}
+	}
+
+	private String cadeiaCausasSegura(Throwable erro) {
+		StringBuilder cadeia = new StringBuilder();
+		Throwable atual = erro;
+		int nivel = 0;
+		while (atual != null && nivel < 5) {
+			if (nivel > 0) cadeia.append(" -> ");
+			cadeia.append(atual.getClass().getSimpleName());
+			if (atual instanceof RestClientResponseException resposta) {
+				cadeia.append(" (HTTP ").append(resposta.getStatusCode().value()).append(')');
+			}
+			if (atual.getCause() == atual) break;
+			atual = atual.getCause();
+			nivel++;
+		}
+		return cadeia.toString();
 	}
 
 	private ConversaPriscila obterOuCriarConversa(Long usuarioId, String idInformado) {
