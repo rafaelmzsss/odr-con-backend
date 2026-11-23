@@ -3,6 +3,7 @@ package odr_con.service.priscila;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import com.google.genai.errors.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -113,6 +114,10 @@ public class PriscilaService {
 			cadeia.append(atual.getClass().getSimpleName());
 			if (atual instanceof RestClientResponseException resposta) {
 				cadeia.append(" (HTTP ").append(resposta.getStatusCode().value()).append(')');
+			}
+			if (atual instanceof ApiException resposta) {
+				cadeia.append(" (HTTP ").append(resposta.code()).append(", ")
+						.append(resposta.status()).append(')');
 			}
 			if (atual.getCause() == atual) break;
 			atual = atual.getCause();
