@@ -13,16 +13,14 @@ spring:
     enabled: true
     locations: classpath:db/migration
   ai:
-    openai:
-      # API do Gemini com compatibilidade OpenAI.
-      base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
-      api-key: ${GEMINI_API_KEY:}
-      chat:
-        options:
+    retry:
+      max-attempts: ${AI_MAX_RETRIES:1}
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
           model: ${AI_MODEL:gemini-3.1-flash-lite}
           temperature: ${AI_TEMPERATURE:0.4}
-      timeout: ${AI_READ_TIMEOUT:60s}
-      max-retries: ${AI_MAX_RETRIES:1}
   http:
     clients:
       connect-timeout: ${AI_CONNECT_TIMEOUT:5s}
