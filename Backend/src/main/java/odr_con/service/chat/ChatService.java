@@ -61,12 +61,31 @@ public class ChatService {
 					"Em Triagem / Atendimento IA", piiDetected, false);
 		} catch (Exception ex) {
 			logger.warn("Falha ao chamar o modelo de IA; fallback ativado. Causa: {}",
-					ex.getClass().getSimpleName());
+				descreverCausaSegura(ex));
 			String severity = escalate ? "CRITICO" : inferirSeveridade(sanitized);
 			return new TriagemResponse(session,
 					"Recebi seu relato (protocolo " + session + "). O assistente está temporariamente indisponível; tente novamente mais tarde ou procure atendimento humano. Esta conversa não registra nem encaminha uma reclamação. Severidade sugerida: " + severity + ".",
 					severity, "Pendente de Atendimento", piiDetected, true);
 		}
+	}
+
+	private String escreverCausaSegura(Throwable erro) {
+		Throwable causa = erro;
+		while (causa.getCause() != null && causa.getCause() != causa) {
+			causa = causa.getCause();
+		}
+		String mensagem = causa.getMessage();
+		if (mensagem == null || mensagem.isBlank()) {
+			return causa.getClass().getSimpleName();
+		}
+		String segura = EMAIL.matcher(mensagem).replaceAll("[EMAIL_PROTEGIDO]");
+		segura = CPF.matcher(segura).replaceAll("[CPF_PROTEGIDO]");
+		segura = LONG_NUMBER.matcher(segura).replaceAll("[NUMERO_PROTEGIDO]");
+		segura = segura.replaceAll("AIza[0-9A-Za-z_-]{20,}", "[CHAVE_PROTEGIDA]");
+		if (segura.length() > 400) {
+			segura = segura.substring(0, 400) + "...";
+		}
+		return causa.getClass().getSimpleName() + ": " + segura;
 	}
 
 	private boolean containsCriticalTerm(String text) {
