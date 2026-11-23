@@ -1,20 +1,19 @@
 # ODR — Backend
 
-API Java 21 com Spring Boot, PostgreSQL, Flyway e Spring AI/Ollama. A conversa com a IA fica disponível em `POST /api/chat`.
+API Java 21 com Spring Boot, PostgreSQL, Flyway e Spring AI. O endpoint de conversa é `POST /api/chat`; a geração de respostas usa Ollama Cloud pela API compatível com OpenAI.
 
 ## Executar localmente (Windows)
 
-Pré-requisitos: Docker Desktop com Compose e pelo menos alguns GB de memória livre para o modelo `llama3.2:3b`. Na primeira execução, o Ollama baixa o modelo (aprox. 2 GB); as próximas execuções reutilizam o volume `ollama-models`.
-
-Na raiz do repositório:
+Pré-requisitos: Docker Desktop com Compose e uma chave de API do Ollama Cloud. Crie a chave na sua conta Ollama e defina-a apenas no terminal da sessão atual:
 
 ```powershell
+$env:OLLAMA_API_KEY = "sua-chave"
 docker compose up --build
 ```
 
-O Compose inicia PostgreSQL, Ollama, baixa o modelo e inicia a API. Acompanhe os logs com `docker compose logs -f api`. A API fica em `http://localhost:8080`; saúde: `GET http://localhost:8080/actuator/health`.
+O Compose inicia PostgreSQL e API. O modelo é executado pelo Ollama Cloud, então não é necessário baixar nem iniciar um container Ollama local. A API fica em `http://localhost:8080`; saúde: `GET http://localhost:8080/actuator/health`.
 
-Para parar, use `Ctrl+C` e `docker compose down`. Os dados do banco e o modelo continuam nos volumes. Para apagá-los também, `docker compose down -v` remove permanentemente os dados locais.
+Para parar, use `Ctrl+C` e `docker compose down`. O banco continua no volume local. `docker compose down -v` remove permanentemente os dados locais do banco.
 
 ### Testar a conversa
 
@@ -25,42 +24,36 @@ $body = @{ sessionId = "teste-001"; message = "Estou tendo dificuldade para reso
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/chat -ContentType "application/json" -Body $body
 ```
 
-A resposta contém `sessionId`, `reply`, `severidade`, `statusCaso`, `dadosMascarados` e `fallbackAtivado`. Reutilize o mesmo `sessionId` para manter o contexto da conversa. Se Ollama estiver indisponível ou demorar demais, a API responde com `fallbackAtivado: true`.
+A resposta contém `sessionId`, `reply`, `severidade`, `statusCaso`, `dadosMascarados` e `fallbackAtivado`. Reutilize o mesmo `sessionId` para manter o contexto. Se `fallbackAtivado` for `true`, confira se a chave está válida e se sua conta Ollama tem saldo/uso disponível.
 
-Valide também a API e o banco:
+## Hospedar no Render
 
-```powershell
-Invoke-RestMethod http://localhost:8080/actuator/health
-```
-
-Para executar a aplicação pela IDE/Maven, inicie somente o banco e o Ollama com `docker compose up -d db ollama`, baixe o modelo com `docker compose run --rm ollama-model`, depois execute `Backend\mvnw.cmd spring-boot:run` dentro de `Backend`. Se usar Ollama instalado diretamente no Windows, configure `OLLAMA_BASE_URL=http://localhost:11434` e baixe o modelo com `ollama pull llama3.2:3b`.
-
-## Hospedar
-
-O Dockerfile em `Backend/` empacota apenas a API. Em Render, Railway, Fly.io ou serviço equivalente, crie um serviço Docker apontando o diretório raiz de build para `Backend`. Crie um PostgreSQL gerenciado e informe as variáveis abaixo no painel da plataforma (não grave segredos no Git):
+O serviço Docker da API usa `Backend/` como diretório raiz e o `Dockerfile` existente. Crie um PostgreSQL no Render e configure no Web Service da API:
 
 | Variável | Valor |
 |---|---|
 | `SPRING_PROFILES_ACTIVE` | `prod` |
 | `DB_URL` | `jdbc:postgresql://HOST:5432/NOME_DO_BANCO` |
-| `DB_USER` | usuário do banco |
-| `DB_PASSWORD` | senha do banco |
-| `CORS_ALLOWED_ORIGINS` | URL(s) exata(s) do frontend, separadas por vírgula |
-| `OLLAMA_BASE_URL` | URL alcançável pela API para o servidor Ollama |
-| `OLLAMA_MODEL` | modelo que já esteja disponível no servidor Ollama, por exemplo `llama3.2:3b` |
-| `AI_READ_TIMEOUT` | `120s` (ou maior se o modelo for lento) |
+| `DB_USER` | usuário do PostgreSQL |
+| `DB_PASSWORD` | senha do PostgreSQL |
+| `OLLAMA_API_KEY` | chave criada na sua conta Ollama |
+| `AI_MODEL` | `gpt-oss:20b` |
+| `AI_READ_TIMEOUT` | `60s` |
+| `AI_MAX_RETRIES` | `1` |
+| `CORS_ALLOWED_ORIGINS` | origem exata do frontend, se já hospedado |
 
-O Ollama do Compose é para desenvolvimento. Para produção, hospede Ollama como serviço separado com CPU/GPU, memória e disco persistente adequados, baixe nele o modelo escolhido e use sua URL privada em `OLLAMA_BASE_URL`. Garanta conectividade de rede entre a API e Ollama; o endereço `localhost` dentro do container da API aponta para a própria API. O banco gerenciado deve aceitar conexões da plataforma. Health check: `/actuator/health`.
+Não é necessário criar um segundo serviço Ollama no Render. `OLLAMA_CLOUD_BASE_URL` tem como padrão `https://ollama.com/v1`; só configure-a se precisar mudar o endpoint. Depois de salvar as variáveis, faça o deploy. O Flyway aplica as migrações na inicialização. Health check: `/actuator/health`.
 
-Após publicar, teste `GET https://SEU-DOMINIO/actuator/health` e envie o mesmo JSON de conversa para `POST https://SEU-DOMINIO/api/chat`. A primeira resposta pode levar mais tempo enquanto o modelo aquece. O Flyway aplica as migrações na inicialização.
+Teste `GET https://SEU-DOMINIO/actuator/health` e envie o JSON do teste acima para `POST https://SEU-DOMINIO/api/chat`.
 
 ## Configuração e comportamento
 
-- `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_TEMPERATURE`, `AI_CONNECT_TIMEOUT` e `AI_READ_TIMEOUT` ajustam a integração.
-- O endpoint de chat é público para permitir uso pelo frontend. Limita mensagens a 4.000 caracteres e mascara padrões de CPF, e-mail e números financeiros antes de enviar o texto ao modelo.
-- A memória de conversa é mantida em memória no processo. Ela não é persistida no PostgreSQL e é perdida quando o serviço reinicia; em múltiplas instâncias, cada instância terá seu próprio histórico.
-- A classificação de severidade é uma heurística de apoio, não uma decisão final. O chat não cria nem encaminha reclamações; a API responde isso explicitamente.
-- O fallback mantém a API disponível quando Ollama falhar, mas não substitui a resposta gerada pelo modelo.
+- `OLLAMA_API_KEY` é segredo: configure-o no Render ou como variável de ambiente local. Nunca o inclua no Git nem no frontend.
+- `AI_MODEL` define o modelo no Ollama Cloud. `AI_TEMPERATURE`, `AI_READ_TIMEOUT` e `AI_MAX_RETRIES` ajustam a geração e as tentativas.
+- As mensagens são enviadas ao Ollama Cloud para gerar respostas. O backend mascara padrões de CPF, e-mail e números financeiros, mas isso não remove todos os dados pessoais ou confidenciais; não envie relatos sensíveis sem a autorização adequada.
+- A memória da conversa fica no processo, não no PostgreSQL. Ela se perde quando o serviço reinicia e não é compartilhada entre múltiplas instâncias.
+- A classificação de severidade é uma heurística de apoio, não uma decisão final. O chat não cria nem encaminha reclamações.
+- Se o provedor estiver indisponível ou a chave falhar, a API retorna uma resposta de fallback.
 
 ## Banco de dados
 
