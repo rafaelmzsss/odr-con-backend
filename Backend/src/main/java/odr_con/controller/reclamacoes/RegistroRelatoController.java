@@ -35,4 +35,10 @@ public class RegistroRelatoController {
 		}
 		return registroRelatoService.registrar(id.longValue(), request);
 	}
+
+	@PostMapping("/anonymous")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ConfirmarRelatoResponse registrarAnonimo(@Valid @RequestBody ConfirmarRelatoRequest request) {
+		return registroRelatoService.registrarAnonimo(request);
+	}
 }
