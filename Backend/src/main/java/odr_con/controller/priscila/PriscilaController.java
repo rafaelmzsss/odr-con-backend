@@ -15,7 +15,7 @@ import odr_con.dto.priscila.PriscilaMensagemResponse;
 import odr_con.service.priscila.PriscilaService;
 
 @RestController
-@RequestMapping("/api/priscila/messages")
+@RequestMapping("/api/priscila")
 public class PriscilaController {
 	private final PriscilaService priscilaService;
 
@@ -23,7 +23,7 @@ public class PriscilaController {
 		this.priscilaService = priscilaService;
 	}
 
-	@PostMapping
+	@PostMapping("/messages")
 	@ResponseStatus(HttpStatus.OK)
 	public PriscilaMensagemResponse enviar(
 			@AuthenticationPrincipal Jwt jwt,
@@ -34,5 +34,11 @@ public class PriscilaController {
 					HttpStatus.UNAUTHORIZED, "Token sem identificador de usuário");
 		}
 		return priscilaService.enviar(id.longValue(), request);
+	}
+
+	@PostMapping("/anonymous/messages")
+	@ResponseStatus(HttpStatus.OK)
+	public PriscilaMensagemResponse enviarAnonimo(@Valid @RequestBody PriscilaMensagemRequest request) {
+		return priscilaService.enviarAnonimo(request);
 	}
 }

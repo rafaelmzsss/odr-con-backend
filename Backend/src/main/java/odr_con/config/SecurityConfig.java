@@ -43,6 +43,8 @@ public class SecurityConfig {
 				.requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login",
 						"/api/auth/password/forgot").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/priscila/anonymous/messages", "/api/reports/anonymous")
+					.permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/usuarios", "/api/usuarios/").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/reclamacoes/acompanhar/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/priscila/messages", "/api/reports",

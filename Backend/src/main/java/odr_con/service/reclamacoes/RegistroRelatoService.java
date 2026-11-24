@@ -2,6 +2,7 @@ package odr_con.service.reclamacoes;
 
 import java.time.Year;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,8 +30,20 @@ public class RegistroRelatoService {
 
 	@Transactional
 	public ConfirmarRelatoResponse registrar(Long usuarioId, ConfirmarRelatoRequest request) {
-		ConversaPriscila conversa = conversaRepository
-				.findByIdAndUsuarioIdForUpdate(request.conversationId(), usuarioId)
+		if (usuarioId == null) throw new IllegalArgumentException("usuarioId é obrigatório nesta rota");
+		return registrarParaUsuario(usuarioId, request);
+	}
+
+	@Transactional
+	public ConfirmarRelatoResponse registrarAnonimo(ConfirmarRelatoRequest request) {
+		return registrarParaUsuario(null, request);
+	}
+
+	private ConfirmarRelatoResponse registrarParaUsuario(Long usuarioId, ConfirmarRelatoRequest request) {
+		var conversaEncontrada = usuarioId == null
+				? conversaRepository.findAnonymousByIdForUpdate(request.conversationId())
+				: conversaRepository.findByIdAndUsuarioIdForUpdate(request.conversationId(), usuarioId);
+		ConversaPriscila conversa = conversaEncontrada
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversa não encontrada"));
 		if (!"ready_for_review".equals(conversa.getStatus())) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -40,7 +53,7 @@ public class RegistroRelatoService {
 		var resumo = request.summary();
 		var existente = reclamacaoRepository.findByConversationId(request.conversationId());
 		if (existente.isPresent()) {
-			if (!usuarioId.equals(existente.get().getUsuarioId())) {
+			if (!Objects.equals(usuarioId, existente.get().getUsuarioId())) {
 				throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversa não encontrada");
 			}
 			return new ConfirmarRelatoResponse(existente.get().getProtocolo(), "registered");

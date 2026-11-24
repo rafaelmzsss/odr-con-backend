@@ -14,8 +14,14 @@ public interface ConversaPriscilaRepository extends JpaRepository<ConversaPrisci
 
 	Optional<ConversaPriscila> findByIdAndUsuarioId(String id, Long usuarioId);
 
+	Optional<ConversaPriscila> findByIdAndUsuarioIdIsNull(String id);
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select c from ConversaPriscila c where c.id = :id and c.usuarioId = :usuarioId")
 	Optional<ConversaPriscila> findByIdAndUsuarioIdForUpdate(
 			@Param("id") String id, @Param("usuarioId") Long usuarioId);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select c from ConversaPriscila c where c.id = :id and c.usuarioId is null")
+	Optional<ConversaPriscila> findAnonymousByIdForUpdate(@Param("id") String id);
 }

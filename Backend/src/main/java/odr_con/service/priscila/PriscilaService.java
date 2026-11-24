@@ -51,6 +51,15 @@ public class PriscilaService {
 	}
 
 	public PriscilaMensagemResponse enviar(Long usuarioId, PriscilaMensagemRequest request) {
+		if (usuarioId == null) throw new IllegalArgumentException("usuarioId é obrigatório nesta rota");
+		return enviarNaConversa(usuarioId, request);
+	}
+
+	public PriscilaMensagemResponse enviarAnonimo(PriscilaMensagemRequest request) {
+		return enviarNaConversa(null, request);
+	}
+
+	private PriscilaMensagemResponse enviarNaConversa(Long usuarioId, PriscilaMensagemRequest request) {
 		ConversaPriscila conversa = obterOuCriarConversa(usuarioId, request.conversationId());
 		if (READY_FOR_REVIEW.equals(conversa.getStatus())) {
 			return respostaAtual(conversa, "Revise o resumo do seu relato.");
@@ -112,7 +121,10 @@ public class PriscilaService {
 					.status(COLLECTING)
 					.build());
 		}
-		return conversaRepository.findByIdAndUsuarioId(idInformado, usuarioId)
+		var conversa = usuarioId == null
+				? conversaRepository.findByIdAndUsuarioIdIsNull(idInformado)
+				: conversaRepository.findByIdAndUsuarioId(idInformado, usuarioId);
+		return conversa
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
 						"Conversa não encontrada"));
 	}

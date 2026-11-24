@@ -27,7 +27,7 @@ public class ConversaPriscila {
 	@Column(length = 36)
 	private String id;
 
-	@Column(name = "usuario_id", nullable = false)
+	@Column(name = "usuario_id")
 	private Long usuarioId;
 
 	@Column(nullable = false, columnDefinition = "TEXT")
